@@ -225,7 +225,7 @@
     .cart-qty-controls {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
       margin: 0 16px;
     }
     .qty-btn {
@@ -239,6 +239,26 @@
     }
     .qty-minus { background: rgba(211,47,47,0.12); color: var(--danger); }
     .qty-plus  { background: rgba(46,125,50,0.12); color: var(--accent); }
+    
+    /* NEW CSS FOR INPUT FIELD */
+    .qty-input {
+      width: 48px;
+      height: 38px;
+      text-align: center;
+      font-size: 16px;
+      font-weight: bold;
+      border: 1px solid var(--tg-hint-color);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--tg-text-color);
+      -moz-appearance: textfield; /* Hides arrows in Firefox */
+    }
+    /* Hides arrows in Chrome/Safari/Edge */
+    .qty-input::-webkit-outer-spin-button,
+    .qty-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
 
     #total {
       font-weight: bold;
@@ -299,7 +319,6 @@
 
   <div id="no-results">No brands found</div>
 
-  <!-- Cart -->
   <div id="cart-summary">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
       <h2 style="margin:0; font-size:20px;">Your Cart</h2>
@@ -328,7 +347,7 @@
     tg.MainButton.hide();
 
     // CHANGE THESE TWO VALUES
-    const BOT_TOKEN = '8557040338:AAGT7VyhxhfbMi6ETnJdPsNzefGwr_LFKJI';           // ← from @BotFather
+    const BOT_TOKEN = '8557040338:AAGT7VyhxhfbMi6ETnJdPsNzefGwr_LFKJI';          // ← from @BotFather
     const TARGET_CHAT_ID = '421868479';        // ← your Telegram ID or group/channel
 
     function applyTheme() {
@@ -597,11 +616,13 @@
 
         const li = document.createElement('li');
         li.className = 'cart-item';
+        
+        // UPDATE: Replaced <span> with <input type="number"> for manual quantity entry
         li.innerHTML = `
           <div class="cart-item-name">${item.brand} ${item.size}</div>
           <div class="cart-qty-controls">
             <button class="qty-btn qty-minus" data-index="${i}" data-delta="-1">−</button>
-            <span class="qty-display">${item.qty}</span>
+            <input type="number" class="qty-input" data-index="${i}" value="${item.qty}" min="1">
             <button class="qty-btn qty-plus" data-index="${i}" data-delta="1">+</button>
           </div>
           <div class="cart-item-total">${line} Birr</div>
@@ -668,6 +689,10 @@
       const cartIsVisible = document.getElementById('cart-summary').classList.contains('visible');
 
       if (cartIsVisible) {
+        // UPDATE: Reset cart to 0 when backing out of the cart
+        cart = [];
+        renderCart();
+        
         document.getElementById('cart-summary').classList.remove('visible');
         tg.MainButton.hide();
         returnToLastBrand();
@@ -678,7 +703,7 @@
       tg.HapticFeedback.impactOccurred('light');
     });
 
-    // Event delegation
+    // Event delegation for clicks
     document.addEventListener('click', e => {
       const t = e.target;
 
@@ -691,6 +716,25 @@
         const index = Number(t.dataset.index);
         const delta = Number(t.dataset.delta);
         if (!isNaN(index)) changeQty(index, delta);
+      }
+    });
+
+    // UPDATE: Event listener to handle manual typing in the quantity input
+    document.addEventListener('change', e => {
+      const t = e.target;
+      if (t.classList.contains('qty-input')) {
+        const index = Number(t.dataset.index);
+        let newQty = parseInt(t.value, 10);
+        
+        // If the user types 0, a negative number, or leaves it blank, remove the item
+        if (isNaN(newQty) || newQty <= 0) {
+          cart.splice(index, 1);
+        } else {
+          cart[index].qty = newQty;
+        }
+        
+        renderCart();
+        tg.HapticFeedback.impactOccurred('light');
       }
     });
 
