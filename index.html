@@ -249,6 +249,7 @@
       border-radius: 8px;
       background: transparent;
       color: var(--tg-text-color);
+      -moz-appearance: textfield;
     }
     .qty-input::-webkit-outer-spin-button,
     .qty-input::-webkit-inner-spin-button {
@@ -286,7 +287,6 @@
       border-top: 1px solid rgba(0,0,0,0.08);
     }
 
-    /* CSS FOR ORDER FORM MODAL Overlay */
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -419,9 +419,11 @@
       text_color: tg.themeParams.button_text_color || '#ffffff'
     });
     tg.MainButton.hide();
+    
+    // BACK BUTTON IS ALWAYS SHOWN TO ALLOW CLOSING THE APP DIRECTLY FROM THE HOME PAGE
+    tg.BackButton.show();
 
-    // Configuration Settings
-    const BOT_TOKEN = '8753262541:AAHN5BUj05rmelhMyHT29oUO2a9Fpt2lb8I';
+    const BOT_TOKEN = '8557040338:AAGT7VyhxhfbMi6ETnJdPsNzefGwr_LFKJI';
     const TARGET_CHAT_ID = '421868479';
 
     function applyTheme() {
@@ -443,8 +445,13 @@
     applyTheme();
     tg.onEvent('themeChanged', applyTheme);
 
-    // Baseline Data Packages
-    const defaultVariants = [{size:'0.3L', price:140}, {size:'0.6L', price:150}, {size:'2L', price:160}];
+    // ADDED 1L/PACK SECTION FOR EACH BRAND IN THE BASELINE CONFIGURATION
+    const defaultVariants = [
+      {size:'0.3L', price:140}, 
+      {size:'0.6L', price:150}, 
+      {size:'1L', price:155}, 
+      {size:'2L', price:160}
+    ];
     const defaultNutrition = [{label:'Calcium', val:'0.4 mg/L'}, {label:'Magnesium', val:'1.3 mg/L'}, {label:'Sodium', val:'2.3 mg/L'}, {label:'TDS', val:'20 mg/L'}];
 
     const brands = [
@@ -523,7 +530,6 @@
       document.body.appendChild(section);
     });
 
-    // Cart Logic & Cache Persistence
     let cart = JSON.parse(localStorage.getItem('etWaterCart')) || [];
 
     function saveCart() {
@@ -565,13 +571,11 @@
         totalEl.textContent = 'Total: 0 Birr';
         summary.classList.remove('visible');
         tg.MainButton.hide();
-        tg.BackButton.hide();
         return;
       }
 
       emptyEl.style.display = 'none';
       summary.classList.add('visible');
-      tg.BackButton.show();
 
       cart.forEach((item, i) => {
         const line = item.price * item.qty;
@@ -580,7 +584,6 @@
         const li = document.createElement('li');
         li.className = 'cart-item';
         
-        // AVOIDED THE INDIVIDUAL NUMBER AND BIRR ROW ON THE RIGHT OF THE "+" BUTTON
         li.innerHTML = `
           <div class="cart-item-name">${item.brand} ${item.size}</div>
           <div class="cart-qty-controls">
@@ -592,13 +595,11 @@
         list.appendChild(li);
       });
 
-      // GRAND TOTAL CONTINUES TO AUTOMATICALLY UPDATE DYNAMICALLY
       totalEl.textContent = `Total: ${total} Birr`;
       tg.MainButton.setText(`Checkout • ${total} Birr`);
       tg.MainButton.show();
     }
 
-    // App Navigation Layout Management
     let previousView = 'main';
     let lastBrandId = null;
 
@@ -628,10 +629,7 @@
       document.querySelector('.categories').style.display = 'grid';
       document.getElementById('no-results').style.display = 'none';
 
-      if (cart.length === 0) {
-        tg.BackButton.hide();
-      }
-      
+      tg.BackButton.show();
       window.scrollTo({ top: 0, behavior: 'smooth' });
       tg.HapticFeedback.impactOccurred('light');
     }
@@ -650,25 +648,38 @@
       }
     }
 
+    // UPDATED TELEGRAM BACK BUTTON LIFE-CYCLE WITH REFRESH TO 0 AND HOME EXIT
     tg.BackButton.onClick(() => {
       const cartIsVisible = document.getElementById('cart-summary').classList.contains('visible');
       const modalIsVisible = document.getElementById('checkout-modal').classList.contains('visible');
 
       if (modalIsVisible) {
+        // IF BACKING OUT FROM ORDER FORM, REFRESH THE CART TO 0
+        cart = [];
+        saveCart();
+        renderCart();
         document.getElementById('checkout-modal').classList.remove('visible');
-        tg.MainButton.show();
+        document.getElementById('cart-summary').classList.remove('visible');
+        tg.MainButton.hide();
+        returnToLastBrand();
       } else if (cartIsVisible) {
+        // IF BACKING OUT FROM THE CART VIEW, REFRESH THE CART TO 0
+        cart = [];
+        saveCart();
+        renderCart();
         document.getElementById('cart-summary').classList.remove('visible');
         tg.MainButton.hide();
         returnToLastBrand();
       } else if (previousView === 'brand') {
         returnToMainView();
+      } else if (previousView === 'main') {
+        // CLOSES THE HOME PAGE DIRECTLY TO RETURN TO TELEGRAM CHAT SCREEN
+        tg.close();
       }
 
       tg.HapticFeedback.impactOccurred('light');
     });
 
-    // Handling User Actions
     document.addEventListener('click', e => {
       const t = e.target;
 
@@ -702,7 +713,6 @@
       }
     });
 
-    // Sorting Engine
     document.getElementById('sortFilter').addEventListener('change', e => {
       const value = e.target.value;
       const tiles = Array.from(document.querySelectorAll('.category-tile'));
@@ -723,7 +733,6 @@
       }
     });
 
-    // Search Engine
     let searchTimeout;
     document.getElementById('searchInput').addEventListener('input', e => {
       clearTimeout(searchTimeout);
@@ -734,7 +743,7 @@
 
         tiles.forEach(tile => {
           const name = tile.querySelector('span').textContent.toLowerCase();
-          const show = name.includes(q) || ['140','150','160'].some(p => q.includes(p));
+          const show = name.includes(q) || ['140','150','155','160'].some(p => q.includes(p));
           tile.style.display = show ? '' : 'none';
           if (show) visible++;
         });
@@ -744,7 +753,6 @@
       }, 280);
     });
 
-    // Order Form Formulations & API Delivery
     const checkoutModal = document.getElementById('checkout-modal');
     
     tg.MainButton.onClick(() => {
@@ -754,8 +762,14 @@
     });
 
     document.getElementById('cancel-order').addEventListener('click', () => {
+      // CLEAR CART TO 0 WHEN CANCELLING DIRECTLY VIA FORM BUTTONS
+      cart = [];
+      saveCart();
+      renderCart();
       checkoutModal.classList.remove('visible');
-      tg.MainButton.show();
+      document.getElementById('cart-summary').classList.remove('visible');
+      tg.MainButton.hide();
+      returnToLastBrand();
     });
 
     document.getElementById('confirm-order').addEventListener('click', async () => {
@@ -775,7 +789,6 @@
         return;
       }
       
-      // CANCEL ORDER SUBMISSION IF PHONE NUMBER EXCEEDS 10 DIGITS
       if (phone.length > 10) {
         tg.showAlert("Order cancelled: Phone number cannot be more than 10 digits.");
         return;
@@ -828,7 +841,6 @@ ${itemsText}
             renderCart();
             document.getElementById('cart-summary').classList.remove('visible');
             
-            tg.BackButton.hide();
             returnToMainView();
           });
         } else {
@@ -842,7 +854,6 @@ ${itemsText}
       }
     });
 
-    // App Initialization Lifecycle Loop
     renderCart();
   </script>
 </body>
