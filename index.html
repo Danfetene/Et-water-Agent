@@ -28,6 +28,8 @@
       background: var(--tg-bg-color);
       color: var(--tg-text-color);
       min-height: 100vh;
+      display: flex;
+      flex-direction: column;
       transition: background 0.3s, color 0.3s;
     }
 
@@ -43,6 +45,10 @@
     }
     header h1 { font-size: 22px; margin: 0; }
     .moto { font-size: 14px; opacity: 0.9; }
+
+    .main-content-wrapper {
+      flex: 1;
+    }
 
     .top-controls {
       display: flex;
@@ -285,6 +291,7 @@
       font-size: 14px;
       background: rgba(0,0,0,0.03);
       border-top: 1px solid rgba(0,0,0,0.08);
+      margin-top: auto;
     }
 
     .modal-overlay {
@@ -350,26 +357,30 @@
 </head>
 <body>
 
-  <header>
-    <h1 id="header-title">ET Water Market (+350 Agents)</h1>
-    <div class="moto">To your need • Addis Ababa delivery</div>
-  </header>
+  <div class="main-content-wrapper">
+    <header>
+      <h1 id="header-title">ET Water Market (+350 Agents)</h1>
+      <div class="moto">To your need • Addis Ababa delivery</div>
+    </header>
 
-  <div class="top-controls">
-    <div class="search-bar">
-      <input id="searchInput" type="text" placeholder="Search brands" />
+    <div class="top-controls">
+      <div class="search-bar">
+        <input id="searchInput" type="text" placeholder="Search brands" />
+      </div>
+      <div class="filter-wrapper">
+        <select id="sortFilter">
+          <option value="default">Filter by</option>
+          <option value="price-low-high">Price: Low</option>
+        </select>
+      </div>
     </div>
-    <div class="filter-wrapper">
-      <select id="sortFilter">
-        <option value="default">Filter by</option>
-        <option value="price-low-high">Price: Low</option>
-      </select>
-    </div>
+
+    <div class="categories" id="categories"></div>
+    
+    <div id="brands-container"></div>
+
+    <div id="no-results">No brands found</div>
   </div>
-
-  <div class="categories" id="categories"></div>
-
-  <div id="no-results">No brands found</div>
 
   <div id="cart-summary">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
@@ -420,7 +431,6 @@
     });
     tg.MainButton.hide();
     
-    // BACK BUTTON IS ALWAYS SHOWN TO ALLOW CLOSING THE APP DIRECTLY FROM THE HOME PAGE
     tg.BackButton.show();
 
     const BOT_TOKEN = '8557040338:AAGT7VyhxhfbMi6ETnJdPsNzefGwr_LFKJI';
@@ -445,7 +455,6 @@
     applyTheme();
     tg.onEvent('themeChanged', applyTheme);
 
-    // ADDED 1L/PACK SECTION FOR EACH BRAND IN THE BASELINE CONFIGURATION
     const defaultVariants = [
       {size:'0.3L', price:140}, 
       {size:'0.6L', price:150}, 
@@ -479,6 +488,7 @@
     ];
 
     const categoriesEl = document.getElementById('categories');
+    const brandsContainer = document.getElementById('brands-container');
 
     brands.forEach(brand => {
       const minPrice = Math.min(...brand.variants.map(v => v.price));
@@ -527,7 +537,8 @@
         ${nutritionHTML}
       `;
 
-      document.body.appendChild(section);
+      // APPENDING TO THE INNER BRANDS CONTAINER RATHER THAN THE DOCUMENT BODY
+      brandsContainer.appendChild(section);
     });
 
     let cart = JSON.parse(localStorage.getItem('etWaterCart')) || [];
@@ -648,13 +659,11 @@
       }
     }
 
-    // UPDATED TELEGRAM BACK BUTTON LIFE-CYCLE WITH REFRESH TO 0 AND HOME EXIT
     tg.BackButton.onClick(() => {
       const cartIsVisible = document.getElementById('cart-summary').classList.contains('visible');
       const modalIsVisible = document.getElementById('checkout-modal').classList.contains('visible');
 
       if (modalIsVisible) {
-        // IF BACKING OUT FROM ORDER FORM, REFRESH THE CART TO 0
         cart = [];
         saveCart();
         renderCart();
@@ -663,7 +672,6 @@
         tg.MainButton.hide();
         returnToLastBrand();
       } else if (cartIsVisible) {
-        // IF BACKING OUT FROM THE CART VIEW, REFRESH THE CART TO 0
         cart = [];
         saveCart();
         renderCart();
@@ -673,7 +681,6 @@
       } else if (previousView === 'brand') {
         returnToMainView();
       } else if (previousView === 'main') {
-        // CLOSES THE HOME PAGE DIRECTLY TO RETURN TO TELEGRAM CHAT SCREEN
         tg.close();
       }
 
@@ -762,7 +769,6 @@
     });
 
     document.getElementById('cancel-order').addEventListener('click', () => {
-      // CLEAR CART TO 0 WHEN CANCELLING DIRECTLY VIA FORM BUTTONS
       cart = [];
       saveCart();
       renderCart();
