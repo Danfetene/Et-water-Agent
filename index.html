@@ -226,7 +226,6 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      margin: 0 16px;
     }
     .qty-btn {
       width: 38px;
@@ -319,7 +318,7 @@
     
     .input-group { margin-bottom: 16px; }
     .input-group label { display: block; margin-bottom: 8px; font-size: 14px; font-weight: 600; color: var(--tg-text-color); }
-    .input-group input, .input-group textarea {
+    .input-group input {
       width: 100%; 
       padding: 14px; 
       border: 1px solid var(--tg-hint-color);
@@ -330,7 +329,7 @@
       font-family: inherit;
       box-sizing: border-box;
     }
-    .input-group input:focus, .input-group textarea:focus {
+    .input-group input:focus {
       outline: 2px solid var(--tg-button-color); 
       border-color: transparent;
     }
@@ -388,7 +387,7 @@
       
       <div class="input-group">
         <label>1. Delivery Address</label>
-        <textarea id="order-address" rows="3" placeholder="Sub-city, Woreda, specific location..."></textarea>
+        <input type="text" id="order-address" placeholder="Sub-city, Woreda, specific location..." />
       </div>
 
       <div class="input-group">
@@ -422,7 +421,7 @@
     tg.MainButton.hide();
 
     // Configuration Settings
-    const BOT_TOKEN = '8753262541:AAHN5BUj05rmelhMyHT29oUO2a9Fpt2lb8I';
+    const BOT_TOKEN = '8557040338:AAGT7VyhxhfbMi6ETnJdPsNzefGwr_LFKJI';
     const TARGET_CHAT_ID = '421868479';
 
     function applyTheme() {
@@ -581,6 +580,7 @@
         const li = document.createElement('li');
         li.className = 'cart-item';
         
+        // AVOIDED THE INDIVIDUAL NUMBER AND BIRR ROW ON THE RIGHT OF THE "+" BUTTON
         li.innerHTML = `
           <div class="cart-item-name">${item.brand} ${item.size}</div>
           <div class="cart-qty-controls">
@@ -588,11 +588,11 @@
             <input type="number" class="qty-input" data-index="${i}" value="${item.qty}" min="1">
             <button class="qty-btn qty-plus" data-index="${i}" data-delta="1">+</button>
           </div>
-          <div class="cart-item-total">${line} Birr</div>
         `;
         list.appendChild(li);
       });
 
+      // GRAND TOTAL CONTINUES TO AUTOMATICALLY UPDATE DYNAMICALLY
       totalEl.textContent = `Total: ${total} Birr`;
       tg.MainButton.setText(`Checkout • ${total} Birr`);
       tg.MainButton.show();
@@ -772,6 +772,12 @@
       }
       if (!phone || phone.length < 9) {
         tg.showAlert("Please insert a valid phone number.");
+        return;
+      }
+      
+      // CANCEL ORDER SUBMISSION IF PHONE NUMBER EXCEEDS 10 DIGITS
+      if (phone.length > 10) {
+        tg.showAlert("Order cancelled: Phone number cannot be more than 10 digits.");
         return;
       }
 
