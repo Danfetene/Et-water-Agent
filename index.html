@@ -205,56 +205,88 @@
       font-weight: 600;
     }
 
+    /* MODERN & SIMPLE CART UI STYLING */
     #cart-summary {
       position: fixed;
       bottom: 0; left: 0; right: 0;
       background: var(--tg-bg-color);
-      border-top: 1px solid rgba(0,0,0,0.1);
-      padding: 16px;
-      box-shadow: 0 -6px 16px rgba(0,0,0,0.15);
+      border-top: 1px solid rgba(0,0,0,0.08);
+      padding: 20px 16px 16px;
+      box-shadow: 0 -8px 24px rgba(0,0,0,0.12);
       transform: translateY(100%);
       transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
       z-index: 100;
+      border-radius: 20px 20px 0 0;
     }
     #cart-summary.visible { transform: translateY(0); }
 
-    #cart-items { list-style: none; margin: 12px 0 20px; max-height: 260px; overflow-y: auto; }
+    #cart-items { 
+      list-style: none; 
+      margin: 8px 0 16px; 
+      max-height: 280px; 
+      overflow-y: auto; 
+    }
     .cart-item {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 12px 0;
-      border-bottom: 1px solid rgba(0,0,0,0.08);
-      font-size: 15px;
+      padding: 14px 0;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
     }
-    .cart-item-name { flex: 1; font-weight: 500; }
+    .cart-item-details {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      flex: 1;
+      padding-right: 8px;
+    }
+    .cart-item-title {
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .cart-item-subtitle {
+      font-size: 13px;
+      color: var(--tg-hint-color);
+    }
+    .cart-item-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
     .cart-qty-controls {
       display: flex;
       align-items: center;
-      gap: 8px;
+      background: rgba(82, 136, 193, 0.08);
+      border-radius: 30px;
+      padding: 2px;
     }
     .qty-btn {
-      width: 38px;
-      height: 38px;
+      width: 32px;
+      height: 32px;
       border: none;
       border-radius: 50%;
-      font-size: 22px;
+      font-size: 18px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
-      transition: background 0.15s;
+      background: var(--tg-bg-color);
+      color: var(--tg-text-color);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      transition: transform 0.1s;
     }
-    .qty-minus { background: rgba(211,47,47,0.12); color: var(--danger); }
-    .qty-plus  { background: rgba(46,125,50,0.12); color: var(--accent); }
+    .qty-btn:active { transform: scale(0.9); }
     
     .qty-input {
-      width: 48px;
-      height: 38px;
-      text-align: center;
-      font-size: 16px;
-      font-weight: bold;
-      border: 1px solid var(--tg-hint-color);
-      border-radius: 8px;
+      width: 38px;
+      border: none;
       background: transparent;
+      text-align: center;
+      font-weight: 700;
+      font-size: 15px;
       color: var(--tg-text-color);
+      outline: none;
       -moz-appearance: textfield;
     }
     .qty-input::-webkit-outer-spin-button,
@@ -262,14 +294,22 @@
       -webkit-appearance: none;
       margin: 0;
     }
+    .cart-item-total {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent);
+      min-width: 75px;
+      text-align: right;
+    }
 
     #total {
-      font-weight: bold;
+      font-weight: 800;
       text-align: right;
       font-size: 20px;
-      margin: 12px 0 16px;
-      padding-top: 12px;
-      border-top: 2px solid rgba(0,0,0,0.08);
+      margin: 12px 0 8px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(0,0,0,0.08);
+      color: var(--tg-text-color);
     }
 
     #empty { text-align: center; color: var(--tg-hint-color); padding: 48px 0; font-size: 16px; }
@@ -383,8 +423,8 @@
   </div>
 
   <div id="cart-summary">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-      <h2 style="margin:0; font-size:20px;">Your Cart</h2>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <h2 style="margin:0; font-size:20px; font-weight: 700;">Your Order</h2>
     </div>
     <ul id="cart-items"></ul>
     <div id="total">Total: 0 Birr</div>
@@ -537,7 +577,6 @@
         ${nutritionHTML}
       `;
 
-      // APPENDING TO THE INNER BRANDS CONTAINER RATHER THAN THE DOCUMENT BODY
       brandsContainer.appendChild(section);
     });
 
@@ -568,6 +607,7 @@
       tg.HapticFeedback.impactOccurred('light');
     }
 
+    // UPDATED MODERN RENDER CART LAYOUT
     function renderCart() {
       const list = document.getElementById('cart-items');
       const totalEl = document.getElementById('total');
@@ -589,18 +629,25 @@
       summary.classList.add('visible');
 
       cart.forEach((item, i) => {
-        const line = item.price * item.qty;
-        total += line;
+        const lineItemTotal = item.price * item.qty;
+        total += lineItemTotal;
 
         const li = document.createElement('li');
         li.className = 'cart-item';
         
+        // MODERN INFRASTRUCTURE FOR CART ROWS
         li.innerHTML = `
-          <div class="cart-item-name">${item.brand} ${item.size}</div>
-          <div class="cart-qty-controls">
-            <button class="qty-btn qty-minus" data-index="${i}" data-delta="-1">−</button>
-            <input type="number" class="qty-input" data-index="${i}" value="${item.qty}" min="1">
-            <button class="qty-btn qty-plus" data-index="${i}" data-delta="1">+</button>
+          <div class="cart-item-details">
+            <span class="cart-item-title">${item.brand}</span>
+            <span class="cart-item-subtitle">${item.size}/Pack • ${item.price} Birr</span>
+          </div>
+          <div class="cart-item-actions">
+            <div class="cart-qty-controls">
+              <button class="qty-btn qty-minus" data-index="${i}" data-delta="-1">−</button>
+              <input type="number" class="qty-input" data-index="${i}" value="${item.qty}" min="1">
+              <button class="qty-btn qty-plus" data-index="${i}" data-delta="1">+</button>
+            </div>
+            <div class="cart-item-total">${lineItemTotal} Birr</div>
           </div>
         `;
         list.appendChild(li);
