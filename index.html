@@ -294,13 +294,6 @@
       -webkit-appearance: none;
       margin: 0;
     }
-    .cart-item-total {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--accent);
-      min-width: 75px;
-      text-align: right;
-    }
 
     #total {
       font-weight: 800;
@@ -607,7 +600,7 @@
       tg.HapticFeedback.impactOccurred('light');
     }
 
-    // UPDATED MODERN RENDER CART LAYOUT
+    /* RENDER CART LAYOUT WITH INSTANT CALCULATION SUPPORT & FIXED PRICE DISPLAY */
     function renderCart() {
       const list = document.getElementById('cart-items');
       const totalEl = document.getElementById('total');
@@ -629,13 +622,13 @@
       summary.classList.add('visible');
 
       cart.forEach((item, i) => {
-        const lineItemTotal = item.price * item.qty;
+        const lineItemTotal = item.price * (item.qty || 0);
         total += lineItemTotal;
 
         const li = document.createElement('li');
         li.className = 'cart-item';
         
-        // MODERN INFRASTRUCTURE FOR CART ROWS
+        /* FIXED: Removed dynamic individual line item price display entirely from the right side of the "+" button */
         li.innerHTML = `
           <div class="cart-item-details">
             <span class="cart-item-title">${item.brand}</span>
@@ -644,10 +637,9 @@
           <div class="cart-item-actions">
             <div class="cart-qty-controls">
               <button class="qty-btn qty-minus" data-index="${i}" data-delta="-1">−</button>
-              <input type="number" class="qty-input" data-index="${i}" value="${item.qty}" min="1">
+              <input type="number" class="qty-input" data-index="${i}" value="${item.qty === 0 ? '' : item.qty}" min="1">
               <button class="qty-btn qty-plus" data-index="${i}" data-delta="1">+</button>
             </div>
-            <div class="cart-item-total">${lineItemTotal} Birr</div>
           </div>
         `;
         list.appendChild(li);
@@ -656,6 +648,24 @@
       totalEl.textContent = `Total: ${total} Birr`;
       tg.MainButton.setText(`Checkout • ${total} Birr`);
       tg.MainButton.show();
+    }
+
+    /* RE-CALCULATE GRAND TOTAL ON THE FLY WITHOUT RE-RENDERING HTML */
+    function recalculateTotalInstantly() {
+      let total = 0;
+      const inputs = document.querySelectorAll('.qty-input');
+      
+      inputs.forEach(input => {
+        const index = Number(input.dataset.index);
+        let val = parseInt(input.value, 10);
+        if (isNaN(val) || val < 0) val = 0;
+        
+        cart[index].qty = val;
+        total += cart[index].price * val;
+      });
+
+      document.getElementById('total').textContent = `Total: ${total} Birr`;
+      tg.MainButton.setText(`Checkout • ${total} Birr`);
     }
 
     let previousView = 'main';
@@ -749,6 +759,15 @@
       }
     });
 
+    /* INSTANT UPDATING LISTENER: Triggers immediately when a user types a number */
+    document.addEventListener('input', e => {
+      const t = e.target;
+      if (t.classList.contains('qty-input')) {
+        recalculateTotalInstantly();
+      }
+    });
+
+    /* CLEANUP SANITIZATION LISTENER: Cleans empty arrays/zeros when a user clicks away */
     document.addEventListener('change', e => {
       const t = e.target;
       if (t.classList.contains('qty-input')) {
