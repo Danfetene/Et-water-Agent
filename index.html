@@ -324,7 +324,7 @@
 
     .footer {
       text-align: center;
-      padding: 24px 16px 100px 16px; /* Extra bottom padding to clear the chat button */
+      padding: 24px 16px 100px 16px;
       color: var(--tg-hint-color);
       font-size: 14px;
       background: rgba(0,0,0,0.03);
@@ -388,7 +388,7 @@
     .cancel-btn { background: rgba(211,47,47,0.12); color: var(--danger); }
     .submit-btn { background: var(--tg-button-color); color: var(--tg-button-text-color); }
 
-    /* --- CUSTOM AI SUPPORT CHAT UI STYLING --- */
+    /* --- ASSISTANT FLOATING WORKSPACE --- */
     .chat-fab {
       position: fixed;
       bottom: 20px;
@@ -468,6 +468,12 @@
       background: var(--chat-bubble-bot);
       color: var(--tg-text-color);
       border-bottom-left-radius: 2px;
+    }
+
+    .msg.typing-indicator {
+      font-style: italic;
+      color: var(--tg-hint-color);
+      opacity: 0.85;
     }
     
     .chat-input-area {
@@ -566,7 +572,7 @@
     </div>
   </div>
 
-  <!-- FLOATING CHAT SYSTEM ELEMENTS -->
+  <!-- FLOATING CONVERSATIONAL ASSISTANT -->
   <div class="chat-fab" id="chatFab">💬</div>
   
   <div class="chat-window" id="chatWindow">
@@ -1058,13 +1064,20 @@ ${itemsText}
       }
     });
 
-    /* --- CHAT INTERACTION JAVASCRIPT LOGIC --- */
+    /* --- INTENT-SCORING ENGINE WITH MEMORY WORKSPACE --- */
     const chatFab = document.getElementById('chatFab');
     const chatWindow = document.getElementById('chatWindow');
     const chatClose = document.getElementById('chatClose');
     const chatInput = document.getElementById('chatInput');
     const chatSendBtn = document.getElementById('chatSendBtn');
     const chatMessages = document.getElementById('chatMessages');
+
+    // Conversation tracking parameters
+    let botMemory = {
+      lastBrand: "",
+      askedAboutPrice: false,
+      askedAboutDelivery: false
+    };
 
     chatFab.addEventListener('click', () => {
       chatWindow.classList.toggle('open');
@@ -1080,12 +1093,13 @@ ${itemsText}
       tg.HapticFeedback.impactOccurred('light');
     });
 
-    function appendMessage(text, sender) {
+    function appendMessage(text, sender, isIndicator = false) {
       const msgDiv = document.createElement('div');
-      msgDiv.className = `msg ${sender}`;
+      msgDiv.className = `msg ${sender}${isIndicator ? ' typing-indicator' : ''}`;
       msgDiv.textContent = text;
       chatMessages.appendChild(msgDiv);
       scrollToBottom();
+      return msgDiv;
     }
 
     function scrollToBottom() {
@@ -1100,19 +1114,14 @@ ${itemsText}
       chatInput.value = '';
       tg.HapticFeedback.impactOccurred('light');
 
-      // Show a quick animated typing state
-      const typingDiv = document.createElement('div');
-      typingDiv.className = 'msg bot';
-      typingDiv.textContent = 'Typing...';
-      chatMessages.appendChild(typingDiv);
-      scrollToBottom();
+      // Append typing state animation placeholder node
+      const typingNode = appendMessage('Typing...', 'bot', true);
 
-      // Simulate parsing the product/agent knowledge data locally
       setTimeout(() => {
-        chatMessages.removeChild(typingDiv);
-        const reply = generateLocalBotReply(query);
+        chatMessages.removeChild(typingNode);
+        const reply = generateSmartLocalReply(query);
         appendMessage(reply, 'bot');
-      }, 750);
+      }, 700);
     }
 
     chatSendBtn.addEventListener('click', handleSendMessage);
@@ -1120,31 +1129,126 @@ ${itemsText}
       if (e.key === 'Enter') handleSendMessage();
     });
 
-    /* 
-      INTEGRATION NOTE FOR BACKEND AI:
-      To wire this directly up to a live Gemini or Node.js server, replace the logic inside 
-      the generateLocalBotReply() function below with a standard fetch() POST call routing to your backend.
-    */
-    function generateLocalBotReply(input) {
-      const text = input.toLowerCase();
+    function generateSmartLocalReply(input) {
+      const text = input.toLowerCase().trim();
       
-      if (text.includes('agent') || text.includes('join') || text.includes('become')) {
-        return "We have over 350 active water distribution agents working across Addis Ababa! To apply or register as an authorized logistics agent, please dial our agent support line at 0984748168 or submit your retail details directly to our central chat hub.";
-      }
-      if (text.includes('brand') || text.includes('product') || text.includes('water type')) {
-        return "We distribute 17 premium bottled water brands in Addis Ababa, including Gold, Top, Africa, Aquaddis, One, Yes, Dega, Arki, Forest, Kiya, Sport, Fham, Care, Wow, Konjo, Eden, and Share. All brands are available in standard case sizes (0.3L, 0.6L, 1L, and 2L packs). Check out the grid menu right above this chat to select individual variants!";
-      }
-      if (text.includes('price') || text.includes('cost') || text.includes('birr')) {
-        return "Our pricing is transparent and highly competitive for bulk agent delivery. Standard cases range between 140 Birr (for 0.3L packs) up to 160 Birr (for 2L packs). You can review all instant item costs by opening any brand tile inside the app menu.";
-      }
-      if (text.includes('delivery') || text.includes('where') || text.includes('addis')) {
-        return "We specialize in rapid warehouse delivery all over Addis Ababa (covering all main sub-cities and locations). Simply add items to your cart, click checkout, and input your specific location details along with a phone number. Our team manages delivery scheduling via our network of closer sub-agents.";
-      }
-      if (text.includes('contact') || text.includes('call') || text.includes('number')) {
-        return "You can reach out to our primary sales desk or call our dispatch lines directly at 0984748168 for any immediate special delivery requests, contract distribution pricing, or physical agent questions.";
-      }
+      // Dynamic Brand Extraction Lookups
+      const brandsList = ['gold', 'top', 'africa', 'aquaddis', 'one', 'yes', 'dega', 'arki', 'forest', 'kiya', 'sport', 'fham', 'care', 'wow', 'konjo', 'eden', 'share'];
+      let foundBrand = brandsList.find(b => text.includes(b));
       
-      return "I've noted your question! I can help you purchase water packs, learn about our 17 brands, understand our 350+ agent distribution channel coverage in Addis Ababa, or assist with checkout orders. What else can I clarify for you?";
+      if (foundBrand) {
+        botMemory.lastBrand = foundBrand.charAt(0).toUpperCase() + foundBrand.slice(1);
+      }
+
+      // Context Match Scoring Intent Objects Array
+      const intents = [
+        {
+          name: 'greeting',
+          keywords: ['hi', 'hello', 'hey', 'greetings', 'selam', 'sup', 'morning', 'afternoon', 'evening'],
+          responses: [
+            "Hello! How can I help you with your water order today? 💧",
+            "Hi there! Looking for fast water delivery in Addis Ababa?",
+            "Selam! I'm your ET Water virtual assistant. What can I do for you today?",
+            "Hey! Feel free to ask me anything about our 17 water brands, pricing, or delivery."
+          ]
+        },
+        {
+          name: 'pricing',
+          keywords: ['price', 'cost', 'birr', 'expensive', 'cheap', 'how much', 'wholesale', 'payment'],
+          responses: [
+            "Our wholesale prices generally range from 140 Birr to 160 Birr per pack depending on the bottle size.",
+            "Prices range between 140-160 Birr. You can tap any brand's icon in the main app menu to see its exact up-to-date case pricing!"
+          ]
+        },
+        {
+          name: 'delivery',
+          keywords: ['delivery', 'deliver', 'where', 'location', 'place', 'address', 'bole', 'addis', 'woreda', 'subcity'],
+          responses: [
+            "We deliver absolutely anywhere across Addis Ababa! Our 350+ dispatch agents handle routes daily.",
+            "Just add your items to the cart, hit 'Checkout', and type your location. The nearest available agent will bring it to your door."
+          ]
+        },
+        {
+          name: 'agent',
+          keywords: ['agent', 'join', 'become', 'work', 'job', 'distribute', 'sell'],
+          responses: [
+            "Want to join our network? We have over 350 active distribution agents in Addis. Apply directly by calling our central desk at 0984748168.",
+            "For agent applications, wholesale partnerships, or job inquiries, please call our team directly at 0984748168."
+          ]
+        },
+        {
+          name: 'contact',
+          keywords: ['contact', 'call', 'phone', 'number', 'support', 'help', 'talk', 'human'],
+          responses: [
+            "You can reach our human support and dispatch team directly at 0984748168.",
+            "Need immediate assistance? Give us a call at 0984748168 and we'll resolve it right away!"
+          ]
+        },
+        {
+          name: 'gratitude',
+          keywords: ['thanks', 'thank you', 'cool', 'great', 'ok', 'okay', 'perfect', 'awesome'],
+          responses: [
+            "You're very welcome! Let me know if you want to add anything else to your cart. 😊",
+            "Anytime! I'm here if you have more questions.",
+            "Awesome! Ready to deliver whenever you submit your order. 💙"
+          ]
+        }
+      ];
+
+      let bestIntent = null;
+      let highestScore = 0;
+
+      intents.forEach(intent => {
+        let score = 0;
+        intent.keywords.forEach(keyword => {
+          if (text.includes(keyword)) {
+            score += 1;
+            if (new RegExp(`\\b${keyword}\\b`).test(text)) score += 1;
+          }
+        });
+
+        if (score > highestScore) {
+          highestScore = score;
+          bestIntent = intent;
+        }
+      });
+
+      // Evaluation Path A: Direct active Brand reference extraction context match
+      if (foundBrand) {
+        const brandName = botMemory.lastBrand;
+        if (bestIntent && bestIntent.name === 'pricing') {
+          return `Excellent choice with ${brandName}! Cases of ${brandName} run within our standard 140–160 Birr wholesale tier. Tap the ${brandName} icon above to lock in your order!`;
+        }
+        return `Ah, ${brandName} water! We stock it in 0.3L, 0.6L, 1L, and 2L sizes. Would you like us to arrange a delivery pack for you?`;
+      }
+
+      // Evaluation Path B: Passive tracking memory state context retrieval match
+      if (bestIntent && botMemory.lastBrand !== "") {
+        const rememberedBrand = botMemory.lastBrand;
+        if (bestIntent.name === 'pricing' && !botMemory.askedAboutPrice) {
+          botMemory.askedAboutPrice = true;
+          return `Speaking of ${rememberedBrand}, our bulk orders go for 140 to 160 Birr per case. Click its icon above to see the exact price layout for it!`;
+        }
+        if (bestIntent.name === 'delivery' && !botMemory.askedAboutDelivery) {
+          botMemory.askedAboutDelivery = true;
+          return `Yes, we can absolutely deliver your ${rememberedBrand} water anywhere in Addis Ababa. Just enter your location at checkout!`;
+        }
+      }
+
+      // Evaluation Path C: Fallback to standard weighted key matching pool choice
+      if (bestIntent && highestScore > 0) {
+        return bestIntent.responses[Math.floor(Math.random() * bestIntent.responses.length)];
+      }
+
+      // Evaluation Path D: Abstract randomized conversation recovery arrays
+      const fallbacks = [
+        "I'm optimized for ET Water info! Try asking me about our 17 brands, batch pricing, or how delivery works in Addis Ababa.",
+        "I didn't quite process that phrasing. If you're looking to order, click the water icons above or call support at 0984748168.",
+        "Hmm, I'm unsure about that one. Could you ask differently? I can help with pricing tiers, delivery lookups, and agent setups!",
+        "I'm still sharpening my conversational skills! 😅 If you need a human right away, feel free to give us a ring at 0984748168."
+      ];
+      
+      return fallbacks[Math.floor(Math.random() * fallbacks.length)];
     }
 
     renderCart();
