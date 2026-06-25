@@ -14,12 +14,18 @@
       --tg-button-text-color: #fff;
       --accent: #2e7d32;
       --danger: #d32f2f;
+      --chat-bg: #ffffff;
+      --chat-bubble-user: #e2f7cb;
+      --chat-bubble-bot: #f1f0f0;
     }
 
     body.dark {
       --tg-bg-color: #17212b;
       --tg-text-color: #f0f0f0;
       --tg-hint-color: #aaa;
+      --chat-bg: #24303f;
+      --chat-bubble-user: #2b5278;
+      --chat-bubble-bot: #182533;
     }
 
     * { margin:0; padding:0; box-sizing:border-box; }
@@ -205,7 +211,6 @@
       font-weight: 600;
     }
 
-    /* MODERN & SIMPLE CART UI STYLING */
     #cart-summary {
       position: fixed;
       bottom: 0; left: 0; right: 0;
@@ -319,7 +324,7 @@
 
     .footer {
       text-align: center;
-      padding: 24px 16px;
+      padding: 24px 16px 100px 16px; /* Extra bottom padding to clear the chat button */
       color: var(--tg-hint-color);
       font-size: 14px;
       background: rgba(0,0,0,0.03);
@@ -383,8 +388,123 @@
     .cancel-btn { background: rgba(211,47,47,0.12); color: var(--danger); }
     .submit-btn { background: var(--tg-button-color); color: var(--tg-button-text-color); }
 
+    /* --- CUSTOM AI SUPPORT CHAT UI STYLING --- */
+    .chat-fab {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--tg-button-color);
+      color: var(--tg-button-text-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+      cursor: pointer;
+      z-index: 90;
+      font-size: 24px;
+      transition: transform 0.2s;
+    }
+    .chat-fab:active { transform: scale(0.9); }
+
+    .chat-window {
+      position: fixed;
+      bottom: 85px;
+      right: 20px;
+      width: calc(100% - 40px);
+      max-width: 360px;
+      height: 450px;
+      background: var(--chat-bg);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+      display: none;
+      flex-direction: column;
+      z-index: 95;
+      overflow: hidden;
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+    .chat-window.open { display: flex; }
+
+    .chat-header {
+      background: var(--tg-button-color);
+      color: var(--tg-button-text-color);
+      padding: 12px 16px;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .chat-header span { font-size: 16px; }
+    .chat-close { cursor: pointer; font-size: 20px; font-weight: 300; }
+
+    .chat-messages {
+      flex: 1;
+      padding: 14px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .msg {
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-size: 14px;
+      line-height: 1.4;
+      word-wrap: break-word;
+    }
+    .msg.user {
+      align-self: flex-end;
+      background: var(--chat-bubble-user);
+      color: #000;
+      border-bottom-right-radius: 2px;
+    }
+    body.dark .msg.user { color: #fff; }
+    
+    .msg.bot {
+      align-self: flex-start;
+      background: var(--chat-bubble-bot);
+      color: var(--tg-text-color);
+      border-bottom-left-radius: 2px;
+    }
+    
+    .chat-input-area {
+      padding: 10px;
+      border-top: 1px solid rgba(0,0,0,0.08);
+      display: flex;
+      gap: 8px;
+      background: var(--chat-bg);
+    }
+    .chat-input-area input {
+      flex: 1;
+      border: 1px solid var(--tg-hint-color);
+      background: transparent;
+      color: var(--tg-text-color);
+      border-radius: 20px;
+      padding: 8px 14px;
+      font-size: 14px;
+      outline: none;
+    }
+    .chat-send-btn {
+      background: var(--tg-button-color);
+      color: var(--tg-button-text-color);
+      border: none;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
     @media (min-width: 500px) {
       body { max-width: 480px; margin: 0 auto; }
+      .chat-window { right: calc(50% - 220px); }
+      .chat-fab { right: calc(50% - 220px); }
     }
   </style>
 </head>
@@ -443,6 +563,23 @@
         <button class="cancel-btn" id="cancel-order">Cancel</button>
         <button class="submit-btn" id="confirm-order">OK</button>
       </div>
+    </div>
+  </div>
+
+  <!-- FLOATING CHAT SYSTEM ELEMENTS -->
+  <div class="chat-fab" id="chatFab">💬</div>
+  
+  <div class="chat-window" id="chatWindow">
+    <div class="chat-header">
+      <span>Water Support AI</span>
+      <span class="chat-close" id="chatClose">×</span>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="msg bot">Hello! I am your ET Water assistant. Ask me anything about our 17 water brands, distribution channels, delivery options in Addis Ababa, or how to register as a water agent! 💧</div>
+    </div>
+    <div class="chat-input-area">
+      <input type="text" id="chatInput" placeholder="Ask about products, agents..." />
+      <button class="chat-send-btn" id="chatSendBtn">➔</button>
     </div>
   </div>
 
@@ -600,7 +737,6 @@
       tg.HapticFeedback.impactOccurred('light');
     }
 
-    /* RENDER CART LAYOUT WITH INSTANT CALCULATION SUPPORT & FIXED PRICE DISPLAY */
     function renderCart() {
       const list = document.getElementById('cart-items');
       const totalEl = document.getElementById('total');
@@ -628,7 +764,6 @@
         const li = document.createElement('li');
         li.className = 'cart-item';
         
-        /* FIXED: Removed dynamic individual line item price display entirely from the right side of the "+" button */
         li.innerHTML = `
           <div class="cart-item-details">
             <span class="cart-item-title">${item.brand}</span>
@@ -650,7 +785,6 @@
       tg.MainButton.show();
     }
 
-    /* RE-CALCULATE GRAND TOTAL ON THE FLY WITHOUT RE-RENDERING HTML */
     function recalculateTotalInstantly() {
       let total = 0;
       const inputs = document.querySelectorAll('.qty-input');
@@ -759,7 +893,6 @@
       }
     });
 
-    /* INSTANT UPDATING LISTENER: Triggers immediately when a user types a number */
     document.addEventListener('input', e => {
       const t = e.target;
       if (t.classList.contains('qty-input')) {
@@ -767,7 +900,6 @@
       }
     });
 
-    /* CLEANUP SANITIZATION LISTENER: Cleans empty arrays/zeros when a user clicks away */
     document.addEventListener('change', e => {
       const t = e.target;
       if (t.classList.contains('qty-input')) {
@@ -925,6 +1057,95 @@ ${itemsText}
         confirmBtn.textContent = "OK";
       }
     });
+
+    /* --- CHAT INTERACTION JAVASCRIPT LOGIC --- */
+    const chatFab = document.getElementById('chatFab');
+    const chatWindow = document.getElementById('chatWindow');
+    const chatClose = document.getElementById('chatClose');
+    const chatInput = document.getElementById('chatInput');
+    const chatSendBtn = document.getElementById('chatSendBtn');
+    const chatMessages = document.getElementById('chatMessages');
+
+    chatFab.addEventListener('click', () => {
+      chatWindow.classList.toggle('open');
+      if (chatWindow.classList.contains('open')) {
+        chatInput.focus();
+        scrollToBottom();
+      }
+      tg.HapticFeedback.impactOccurred('light');
+    });
+
+    chatClose.addEventListener('click', () => {
+      chatWindow.classList.remove('open');
+      tg.HapticFeedback.impactOccurred('light');
+    });
+
+    function appendMessage(text, sender) {
+      const msgDiv = document.createElement('div');
+      msgDiv.className = `msg ${sender}`;
+      msgDiv.textContent = text;
+      chatMessages.appendChild(msgDiv);
+      scrollToBottom();
+    }
+
+    function scrollToBottom() {
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    async function handleSendMessage() {
+      const query = chatInput.value.trim();
+      if (!query) return;
+
+      appendMessage(query, 'user');
+      chatInput.value = '';
+      tg.HapticFeedback.impactOccurred('light');
+
+      // Show a quick animated typing state
+      const typingDiv = document.createElement('div');
+      typingDiv.className = 'msg bot';
+      typingDiv.textContent = 'Typing...';
+      chatMessages.appendChild(typingDiv);
+      scrollToBottom();
+
+      // Simulate parsing the product/agent knowledge data locally
+      setTimeout(() => {
+        chatMessages.removeChild(typingDiv);
+        const reply = generateLocalBotReply(query);
+        appendMessage(reply, 'bot');
+      }, 750);
+    }
+
+    chatSendBtn.addEventListener('click', handleSendMessage);
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleSendMessage();
+    });
+
+    /* 
+      INTEGRATION NOTE FOR BACKEND AI:
+      To wire this directly up to a live Gemini or Node.js server, replace the logic inside 
+      the generateLocalBotReply() function below with a standard fetch() POST call routing to your backend.
+    */
+    function generateLocalBotReply(input) {
+      const text = input.toLowerCase();
+      
+      if (text.includes('agent') || text.includes('join') || text.includes('become')) {
+        return "We have over 350 active water distribution agents working across Addis Ababa! To apply or register as an authorized logistics agent, please dial our agent support line at 0984748168 or submit your retail details directly to our central chat hub.";
+      }
+      if (text.includes('brand') || text.includes('product') || text.includes('water type')) {
+        return "We distribute 17 premium bottled water brands in Addis Ababa, including Gold, Top, Africa, Aquaddis, One, Yes, Dega, Arki, Forest, Kiya, Sport, Fham, Care, Wow, Konjo, Eden, and Share. All brands are available in standard case sizes (0.3L, 0.6L, 1L, and 2L packs). Check out the grid menu right above this chat to select individual variants!";
+      }
+      if (text.includes('price') || text.includes('cost') || text.includes('birr')) {
+        return "Our pricing is transparent and highly competitive for bulk agent delivery. Standard cases range between 140 Birr (for 0.3L packs) up to 160 Birr (for 2L packs). You can review all instant item costs by opening any brand tile inside the app menu.";
+      }
+      if (text.includes('delivery') || text.includes('where') || text.includes('addis')) {
+        return "We specialize in rapid warehouse delivery all over Addis Ababa (covering all main sub-cities and locations). Simply add items to your cart, click checkout, and input your specific location details along with a phone number. Our team manages delivery scheduling via our network of closer sub-agents.";
+      }
+      if (text.includes('contact') || text.includes('call') || text.includes('number')) {
+        return "You can reach out to our primary sales desk or call our dispatch lines directly at 0984748168 for any immediate special delivery requests, contract distribution pricing, or physical agent questions.";
+      }
+      
+      return "I've noted your question! I can help you purchase water packs, learn about our 17 brands, understand our 350+ agent distribution channel coverage in Addis Ababa, or assist with checkout orders. What else can I clarify for you?";
+    }
 
     renderCart();
   </script>
